@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.x4444.app1s"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="15"
+        android:targetSdkVersion="19" />
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".App1sApp"
+        android:allowBackup="true"
+        android:icon="@drawable/starthere" >
+        <activity
+            android:name="org.x4444.app1s.MainActivity"
+            android:label="@string/main_label"
+            android:theme="@style/CustomActionBarTheme" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".LocationService"
+            android:enabled="true" >
+        </service>
+
+        <receiver
+            android:name=".LocationReceiver"
+            android:enabled="true" >
+            <intent-filter>
+                <action android:name="org.x4444.intent.action.LOCATION" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
