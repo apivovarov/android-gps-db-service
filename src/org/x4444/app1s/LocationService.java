@@ -39,8 +39,9 @@ public class LocationService extends Service {
             adjFreq = freq - 200;
         } else {
             // if freq is low then give gps 7 sec to fix gps after long sleep
+            // adjFreq related logic should always return true
             realFreq = freq - 7000;
-            adjFreq = (int)(realFreq * 0.95);
+            adjFreq = 0;
         }
         Log.i("gps", "LocationService onStartCommand, freq: " + freq + " adjFreq: " + adjFreq
                 + " realFreq: " + realFreq);
