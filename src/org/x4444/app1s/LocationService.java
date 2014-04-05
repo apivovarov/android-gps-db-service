@@ -1,6 +1,8 @@
 
 package org.x4444.app1s;
 
+import java.util.Date;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -19,6 +21,8 @@ public class LocationService extends Service {
 
     static final int NOTIF_ID = 1;
 
+    long adjFreq;
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -26,17 +30,30 @@ public class LocationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i("gps", "LocationService onStartCommand: " + this);
         int freq = intent.getIntExtra(MainActivity.GPS_FREQ_NAME, 3000);
+
+        int realFreq;
+        if (freq <= 10000) {
+            // if freq is high - track gsp constantly (every 1 sec)
+            realFreq = 1000;
+            adjFreq = freq - 200;
+        } else {
+            // if freq is low then give gps 7 sec to fix gps after long sleep
+            realFreq = freq - 7000;
+            adjFreq = (int)(realFreq * 0.95);
+        }
+        Log.i("gps", "LocationService onStartCommand, freq: " + freq + " adjFreq: " + adjFreq
+                + " realFreq: " + realFreq);
+
         if (App1sApp.myLocationListener != null) {
             removeLocationListener();
             try {
                 // sleep needed to switch from 3 min to 5 sec gps listener
-                Thread.sleep(1);
+                Thread.sleep(50);
             } catch (InterruptedException e) {
             }
         }
-        addLocationListener(freq);
+        addLocationListener(realFreq);
 
         notifBuilder.setContentTitle("Location freq: " + freq);
         getNotifMngr().notify(NOTIF_ID, notifBuilder.getNotification());
@@ -54,7 +71,6 @@ public class LocationService extends Service {
                 .setSmallIcon(R.drawable.pin_map_gps);
 
         startForeground(NOTIF_ID, notifBuilder.getNotification());
-
         Log.i("gps", "started service in foreground");
     }
 
@@ -91,20 +107,30 @@ public class LocationService extends Service {
 
     class MyLocationListener implements LocationListener {
 
+        long lastUpdate;
+
         @Override
         public void onLocationChanged(Location location) {
             try {
                 if (location != null) {
-                    Log.i("gps", "onLocationChanged: " + location.getTime());
+                    long now = location.getTime();
+                    long diff = now - lastUpdate;
+                    Log.i("gps", "onLocationChanged. gps time: " + location.getTime() + " diff: "
+                            + diff);
 
-                    // save to DB
-                    App1sApp.locationDao.saveLocation(location);
+                    if (diff >= adjFreq) {
+                        lastUpdate = now;
+                        // save to DB
+                        App1sApp.locationDao.saveLocation(location);
 
-                    App1sApp.gpsCnt++;
-                    notifBuilder.setContentText(location.getLatitude() + ","
-                            + location.getLongitude() + "@" + location.getTime());
-                    getNotifMngr().notify(NOTIF_ID, notifBuilder.getNotification());
-                    Log.i("gps", "location notify done");
+                        App1sApp.gpsCnt++;
+
+                        String datetime = App1sApp.sdfHhmmss.format(new Date(location.getTime()));
+                        notifBuilder.setContentText(location.getLatitude() + ","
+                                + location.getLongitude() + " " + datetime);
+                        getNotifMngr().notify(NOTIF_ID, notifBuilder.getNotification());
+                        Log.i("gps", "location notify done");
+                    }
                 }
             } catch (Exception e) {
                 Log.e("gps", e.getMessage(), e);
